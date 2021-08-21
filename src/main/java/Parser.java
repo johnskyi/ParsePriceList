@@ -6,7 +6,6 @@ import org.json.simple.parser.ParseException;
 
 import java.io.*;
 import java.net.URL;
-import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,16 +16,37 @@ public class Parser {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static Map<String, Map<String, String>> countryPrice = new HashMap<>();
 
-    //c GET запроса достаем json с прайсом по странам
-    public static void parsePage(String urlPage) throws IOException {
-        File fileFirst = new File(FILE_FIRST_PATH);
+    //Запуск парсинга
+    public static void startParsing(String urlPage) {
+        try {
+            System.out.println("Parsing......");
+            parsePage(urlPage);
+            urlParser();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("Parsing done!");
+
+    }
+
+    //c GET запроса достаем json с прайсом по странам, пишем в файл
+    private static void parsePage(String urlPage) throws IOException {
+        PrintWriter writer = new PrintWriter(FILE_FIRST_PATH);
         URL url = new URL(urlPage);
         InputStream inputStream = url.openStream();
-        Files.copy(inputStream, fileFirst.toPath());
+        BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
+        StringBuilder result = new StringBuilder();
+        String line;
+        while ((line = br.readLine()) != null) {
+            result.append(line);
+        }
+        writer.write(result.toString());
+        writer.flush();
+        writer.close();
     }
 
     //Парсим json, достаем нужную информацию, сохраняем в Map<Название страны, Map<Название сервиса, цена>>
-    public static void jsonParser() throws IOException, ParseException {
+    private static void urlParser() throws IOException, ParseException {
 
         FileReader reader = new FileReader(FILE_FIRST_PATH);
 
@@ -41,11 +61,12 @@ public class Parser {
         Map<String, Map<String, String>> list = (Map<String, Map<String, String>>) jsonObject.get("list");
         for (String key : textRus.keySet()) {
             countryPrice.put(textRus.get(key), list.get(key));
+            jsonCreate();
         }
     }
 
     // Создаем новый json c прайсом по странам
-    public static void jsonCreate() throws IOException {
+    private static void jsonCreate() throws IOException {
         try (FileWriter file = new FileWriter(FILE_SECOND_PATH)) {
             file.write(GSON.toJson(countryPrice));
         }
